@@ -38,8 +38,8 @@
 #define REGENERATION_SUSPEND_RESUME_REQ 							(0u)
 
 // Dosing Time Macros
-#define DOSING_START_TIME			  (16) // 9:00
-#define DOSING_END_TIME				  (17)// 10:00
+#define DOSING_START_TIME			  (12) // 12:00
+#define DOSING_END_TIME				  (13)//  13:00
 
 #define ADC_TOTAL_SAMPLE			  (20)
 
@@ -64,8 +64,8 @@
 #define LEDC_DUTY_RES                (LEDC_TIMER_10_BIT)
 
 // Salt Dosing MACROS
-#define SALT_DOSING_PUMP_TIME			(20)// 20 SEC
-#define ELECTROLYSIS_PROCESS_TIME       (120)// 120 minute
+#define SALT_DOSING_PUMP_TIME			(15)// 15 SEC
+#define ELECTROLYSIS_PROCESS_TIME       (240)// 240 minute
 #define RESET_HOLD_TIME_MS 				(2000) // 2 seconds
 #define MAX_CRT_FILLING_TIME			(200)// 200 Second
 #define MAX_CST_FILLING_TIME			(250)// 250 Second
@@ -2220,7 +2220,7 @@ ESP_LOGI("DATA Command", "Packet sent successfully (%d bytes)", bytes_sent);
 
 static void data_transfer(void)
 {
-uint8_t response[10];
+uint8_t response[10] = {0};
 int len = uart_read_bytes(uart_num1, response, sizeof(response), pdMS_TO_TICKS(300));
 
 if (len == 4)
