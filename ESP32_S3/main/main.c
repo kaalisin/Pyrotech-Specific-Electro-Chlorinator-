@@ -1490,15 +1490,11 @@ void system_check(void)
 	// System Check When last Mode is Dosing Mode
 	if((nvs_data.operating_mode & DOSING_OPERATION) == DOSING_OPERATION)
 	{
-	   if((gpio_get_level(BOTT_LEVEL_CST_SENSOR_GPIO) == true)&&(current_time.tm_hour >= DOSING_START_TIME && current_time.tm_hour < DOSING_END_TIME))
+	   float temp_time = (float)(current_time.tm_hour + (current_time.tm_min/60.0f));	
+	   if((gpio_get_level(BOTT_LEVEL_CST_SENSOR_GPIO) == false) || (temp_time < DOSING_START_TIME || temp_time > DOSING_END_TIME))
 	   {
-	 	   	dosing_status_f = SYS_OK;
-	   }
-	   else
-	   {
-			dosing_status_f = SYS_NOK;
-		    system_op_error_code |= DOSING_ERROR;		 
-	   } 	
+	 	   	nvs_data.operating_mode &= ~(DOSING_OPERATION);
+	   }	
 	}
     // System Check When last Mode is Regeneration Mode
 	if((nvs_data.operating_mode & REGENERATION_OPERATION) == REGENERATION_OPERATION)
@@ -1594,7 +1590,7 @@ void system_check(void)
 		    }
 #endif
 		    			
-			if(DosingHandler !=NULL)
+			if(DosingHandler !=NULL) // to be discuss 
 			{
 				state = eTaskGetState(DosingHandler);
 				if(state == eSuspended)
@@ -1650,6 +1646,7 @@ static void GPIOs_Status_check(void)
 {
 	EventBits_t set_bits = 0;
     EventBits_t clear_bits = 0;
+	float temp_time = (float)(current_time.tm_hour + (current_time.tm_min/60.0f));	
 
     if (gpio_get_level(FLOATY_SENSOR_GPIO))
        {set_bits |= FLOATY_SENSOR_BIT;
@@ -1712,7 +1709,7 @@ static void GPIOs_Status_check(void)
 
 
 	// Check the Dosing Time 
-	if(current_time.tm_hour >= DOSING_START_TIME && current_time.tm_hour < DOSING_END_TIME)
+	if(temp_time >= DOSING_START_TIME && temp_time < DOSING_END_TIME)
 	{
 		set_bits |= DOSING_TIME_BIT;
 		clear_bits |= DOSING_STOP_TIME_BIT;
