@@ -38,8 +38,8 @@
 #define REGENERATION_SUSPEND_RESUME_REQ 							(0u)
 
 // Dosing Time Macros
-#define DOSING_START_TIME			  (12) // 12:00
-#define DOSING_END_TIME				  (13)//  13:00
+#define DOSING_START_TIME			  (13) // 13:00
+#define DOSING_END_TIME				  (14)//  14:00
 
 #define ADC_TOTAL_SAMPLE			  (20)
 
@@ -60,7 +60,7 @@
 #define HIGH 							(1ul)
 #define LOW								(0ul)
 #define MAC_ID_CMD_LENGTH				(6ul)
-#define DATA_CMD_LENGTH					(28ul)
+#define DATA_CMD_LENGTH					(20ul)
 #define LEDC_DUTY_RES                (LEDC_TIMER_10_BIT)
 
 // Salt Dosing MACROS
@@ -183,6 +183,7 @@
 #define VALVE_V2_BIT					(1<<3)
 #define SSR_RELAY_BIT					(1<<4)
 #define POLARITY_BIT					(1<<5)
+#define DOSING_PUMP_BIT                 (1<<6)
 
 // Status Bit 
 #define SYSTEM_OK_BIT					(1<<0)
@@ -2184,6 +2185,8 @@ OP_status |= ((output_status.Output_level.valve1 == LOW)                      ? 
 OP_status |= ((output_status.Output_level.valve2 == LOW)                      ? 0                       : VALVE_V2_BIT);
 OP_status |= ((output_status.Output_level.ssr == LOW)                         ? 0                       : SSR_RELAY_BIT);
 OP_status |= ((output_status.Output_level.polarity == LOW)                    ? 0                       : POLARITY_BIT);
+OP_status |= ((output_status.Output_level.pump3 == LOW)                       ? 0                       : DOSING_PUMP_BIT);
+
 
 data_Buffer[2] = OP_status;
 
@@ -2197,16 +2200,14 @@ data_Buffer[5] = nvs_data.operating_mode;
 
 memcpy(&data_Buffer[6],  (const void *)&Electrode_voltage, sizeof(float)); // 4 byte Voltage Value
 memcpy(&data_Buffer[10],  (const void *)&Electrode_current, sizeof(float)); // 4 byte current Value
-memcpy(&data_Buffer[14],  (const void *)&Dosing_speed, sizeof(float)); // 4 byte Dosing Speed
-memcpy(&data_Buffer[18],  (const void *)&Flow_Rate, sizeof(float)); // 4 Byte Flow Rate Value 
 
-data_Buffer[22] = (nvs_data.timer_counter >> 8); // Electro-lysis Duration
-data_Buffer[23] = (nvs_data.timer_counter & 0xFF);
+data_Buffer[14] = (nvs_data.timer_counter >> 8); // Electro-lysis Duration
+data_Buffer[15] = (nvs_data.timer_counter & 0xFF);
 
-memcpy(&data_Buffer[24], &system_op_error_code, sizeof(system_op_error_code)); // Error Code 
+memcpy(&data_Buffer[16], &system_op_error_code, sizeof(system_op_error_code)); // Error Code 
 
 Electrode_current =0; Electrode_voltage =0;
-int bytes_sent = uart_write_bytes(uart_num1, (const char*)data_Buffer, DATA_CMD_LENGTH); // 28 Bytes is a Data Packet Length
+int bytes_sent = uart_write_bytes(uart_num1, (const char*)data_Buffer, DATA_CMD_LENGTH); // 20 Bytes is a Data Packet Length
 if (bytes_sent != DATA_CMD_LENGTH) {
     ESP_LOGE("Error", "UART Send Failed (%d bytes sent)", bytes_sent);
     return;
