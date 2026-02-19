@@ -138,7 +138,7 @@
 #define FLOATY_SENSOR_BIT               (1<<0)
 #define FLOATY_NO_SENSOR_BIT 			(1<<1)
 
-#define FLOW_METER_SENSOR_BIT		    (1<<13)
+
 #define FLOW_METER_NO_SENSOR_BIT		(1<<2)
 
 #define CRT_TOP_SENSOR_BIT				(1<<3)
@@ -156,22 +156,25 @@
 #define REG_RELAY_SENSOR_BIT			(1<<11)
 #define REG_NO_RELAY_SENSOR_BIT			(1<<12)
 
+#define FLOW_METER_SENSOR_BIT		    (1<<13)
 #define ELECTROLYSIS_DONE_BIT           (1<<14)
 #define OPERATING_MODE_BIT				(1<<15)
 
-#define CRT_FILLING_TIMER_BIT           (1<<16)
-#define CST_FILLING_TIMER_BIT           (1<<20)
 
+#define CRT_FILLING_TIMER_BIT           (1<<16)
 #define CST_BOTTOM_CHANGE_BIT		    (1<<17)
 
 // Error Bits
 #define CRT_FILLING_TIMER_NO_ERROR_BIT  (1<<18)
 #define CST_FILLING_TIMER_NO_ERROR_BIT  (1<<19)
 
+#define CST_FILLING_TIMER_BIT           (1<<20)
+
 // Dosing Start Bits
-#define DOSING_TIME_BIT					(1<<20)
 #define DOSING_STOP_TIME_BIT			(1<<21)
 #define DOSING_OFF_BIT					(1<<22)
+#define DOSING_TIME_BIT					(1<<23)
+
 
 
 
