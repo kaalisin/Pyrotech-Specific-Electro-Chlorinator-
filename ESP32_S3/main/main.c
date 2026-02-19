@@ -1,3 +1,7 @@
+// Author : Harshit Singh
+// Version : 0.1
+// Date : 19/02/2026
+
 // Header Files
 #include <stddef.h>
 #include <stdint.h>
