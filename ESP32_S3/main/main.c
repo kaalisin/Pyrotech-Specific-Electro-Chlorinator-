@@ -1,6 +1,6 @@
 // Author : Harshit Singh
-// Version : 0.1
-// Date : 19/02/2026
+// Version : 0.2
+// Date : 23/02/2026
 
 // Header Files
 #include <stddef.h>
@@ -43,7 +43,7 @@
 
 // Dosing Time Macros
 #define DOSING_START_TIME			  (13) // 13:00
-#define DOSING_END_TIME				  (14)//  14:00
+#define DOSING_END_TIME				  (14) // 14:00
 
 #define ADC_TOTAL_SAMPLE			  (20)
 
@@ -143,7 +143,7 @@
 #define FLOATY_NO_SENSOR_BIT 			(1<<1)
 
 
-#define FLOW_METER_NO_SENSOR_BIT		(1<<2)
+#define CST_FILL_OFF_BIT				(1<<2)
 
 #define CRT_TOP_SENSOR_BIT				(1<<3)
 #define CRT_NO_TOP_SENSOR_BIT		    (1<<4)
@@ -806,12 +806,13 @@ static void v_dosing_task(void * pvParameters)
 			    case(DOSE_EVENT_GP1):  
 					//Dosing Task Working 
 					EventBits_t bits = xEventGroupWaitBits(sensor_event_group,
-											CST_BOTTOM_SENSOR_BIT | DOSING_TIME_BIT,
+											CST_BOTTOM_SENSOR_BIT | DOSING_TIME_BIT | CST_FILL_OFF_BIT,
 											pdTRUE,   
 											pdTRUE,   // wait for both bit
 											portMAX_DELAY);
 											
-					if(((bits & CST_BOTTOM_SENSOR_BIT) == CST_BOTTOM_SENSOR_BIT) && ((bits & DOSING_TIME_BIT) == DOSING_TIME_BIT))
+					if(((bits & CST_BOTTOM_SENSOR_BIT) == CST_BOTTOM_SENSOR_BIT) && ((bits & DOSING_TIME_BIT) == DOSING_TIME_BIT)
+						&& ((bits & CST_FILL_OFF_BIT) == CST_FILL_OFF_BIT))
 					{
 										ESP_LOGI("Chlorine Dosing","Started");
 										gpio_set_level(DOSING_PUMP_D2_GPIO,1);
@@ -1367,7 +1368,8 @@ void system_check(void)
 	{		
 	// System Check When last Mode is CRT Mode
 	case  CRT_FILLING_START_OPERATION:
-	 	if(gpio_get_level(FLOATY_SENSOR_GPIO) == true && (gpio_get_level(REGENERATION_SIGNAL_GPIO) == true) && (nvs_data.crt_filling_timer_error_f !=1))
+	 	if(gpio_get_level(FLOATY_SENSOR_GPIO) == true && (gpio_get_level(REGENERATION_SIGNAL_GPIO) == true) && (nvs_data.crt_filling_timer_error_f !=1)
+		  && (gpio_get_level(TOP_LEVEL_CST_SENSOR_GPIO) == true))
 		{
 			chlorine_status_f = SYS_OK;
 		}
@@ -1416,8 +1418,7 @@ void system_check(void)
 	 break;
 	// System Check When last Mode is CST FILLING Mode	
 	  case CST_FILLING_START_OPERATION:
-	  		if((gpio_get_level(TOP_LEVEL_CST_SENSOR_GPIO) == true) && (nvs_data.cst_filling_timer_error_f != 1)
-		       &&((nvs_data.operating_mode & DOSING_OPERATION) != DOSING_OPERATION))
+	  		if((nvs_data.cst_filling_timer_error_f != 1)&&((nvs_data.operating_mode & DOSING_OPERATION) != DOSING_OPERATION))
 	  		{
 				 chlorine_status_f = SYS_OK; 
 			}
@@ -1738,6 +1739,16 @@ static void GPIOs_Status_check(void)
 		clear_bits |= DOSING_OFF_BIT;
 	}
 
+    if((nvs_data.Current_operating_status_f != CST_FILLING_START_OPERATION))
+	{
+			set_bits |= CST_FILL_OFF_BIT;
+	}
+	else
+	{
+            clear_bits |= CST_FILL_OFF_BIT;
+	}
+
+
 
     // Update all bits at once
     xEventGroupClearBits(sensor_event_group, clear_bits);
@@ -1910,9 +1921,9 @@ static void Get_Flow_rate(void)
         previous_cst_status = current_cst_status;
     }
     if (Flow_Rate < FLOW_RATE_MIN_VALUE) {
-        xEventGroupSetBits(sensor_event_group, FLOW_METER_NO_SENSOR_BIT);
+       // xEventGroupSetBits(sensor_event_group, FLOW_METER_NO_SENSOR_BIT);
     } else {
-        xEventGroupClearBits(sensor_event_group, FLOW_METER_NO_SENSOR_BIT);
+       // xEventGroupClearBits(sensor_event_group, FLOW_METER_NO_SENSOR_BIT);
     }
     
     if (set_bits) {
