@@ -1,6 +1,6 @@
 // Author : Harshit Singh
 // Version : 0.2
-// Date : 23/02/2026
+// Date : 24/02/2026
 
 // Header Files
 #include <stddef.h>
@@ -42,8 +42,8 @@
 #define REGENERATION_SUSPEND_RESUME_REQ 							(0u)
 
 // Dosing Time Macros
-#define DOSING_START_TIME			  (13) // 13:00
-#define DOSING_END_TIME				  (14) // 14:00
+#define DOSING_START_TIME			  (11) // 11:00
+#define DOSING_END_TIME				  (17) // 17:00
 
 #define ADC_TOTAL_SAMPLE			  (20)
 
@@ -69,7 +69,7 @@
 
 // Salt Dosing MACROS
 #define SALT_DOSING_PUMP_TIME			(15)// 15 SEC
-#define ELECTROLYSIS_PROCESS_TIME       (240)// 240 minute
+#define ELECTROLYSIS_PROCESS_TIME       (5)// 5 minute
 #define RESET_HOLD_TIME_MS 				(2000) // 2 seconds
 #define MAX_CRT_FILLING_TIME			(200)// 200 Second
 #define MAX_CST_FILLING_TIME			(250)// 250 Second
@@ -160,7 +160,7 @@
 #define REG_RELAY_SENSOR_BIT			(1<<11)
 #define REG_NO_RELAY_SENSOR_BIT			(1<<12)
 
-#define FLOW_METER_SENSOR_BIT		    (1<<13)
+#define CST_FILL_ON_BIT				    (1<<13)
 #define ELECTROLYSIS_DONE_BIT           (1<<14)
 #define OPERATING_MODE_BIT				(1<<15)
 
@@ -1182,11 +1182,11 @@ static void v_chlorination_task(void * pvParameters)
 			   if(nvs_data.electrolysis_done_f == true && ((nvs_data.operating_mode & CST_FILLING_START_OPERATION) == 0 ))
 			   {
 				   EventBits_t bits = xEventGroupWaitBits(sensor_event_group,
-	                                       DOSING_OFF_BIT|CST_NO_TOP_SENSOR_BIT|CST_FILLING_TIMER_NO_ERROR_BIT,
+	                                       DOSING_OFF_BIT|CST_FILL_ON_BIT|CST_FILLING_TIMER_NO_ERROR_BIT,
 	                                       pdTRUE,    
 	                                       pdTRUE,   // wait for all bit
 	                                       portMAX_DELAY);
-	                  if(((bits & DOSING_OFF_BIT) == DOSING_OFF_BIT)  && ((bits & CST_NO_TOP_SENSOR_BIT) == CST_NO_TOP_SENSOR_BIT)
+	                  if(((bits & DOSING_OFF_BIT) == DOSING_OFF_BIT)  && ((bits & CST_FILL_ON_BIT) == CST_FILL_ON_BIT)
 	                    && ((bits & CST_FILLING_TIMER_NO_ERROR_BIT) == CST_FILLING_TIMER_NO_ERROR_BIT)) 
 	                  {						 
 						  LED1_ON();
@@ -1747,8 +1747,14 @@ static void GPIOs_Status_check(void)
 	{
             clear_bits |= CST_FILL_OFF_BIT;
 	}
-
-
+	if((nvs_data.Current_operating_status_f == CST_FILLING_START_OPERATION) || (gpio_get_level(TOP_LEVEL_CST_SENSOR_GPIO) == true)) // It means when the CST filling operation is started and TOP CST Water level is Empty
+	{
+		  set_bits |= CST_FILL_ON_BIT;
+	}
+	else
+	{
+		 clear_bits |= CST_FILL_ON_BIT;
+	}
 
     // Update all bits at once
     xEventGroupClearBits(sensor_event_group, clear_bits);
@@ -1912,7 +1918,7 @@ static void Get_Flow_rate(void)
     float difference_rate = fabsf(Flow_Rate - previous_flow_rate);
     previous_flow_rate = Flow_Rate;
     if (difference_rate > FLOW_RATE_DIFF_THRESHOLD) {
-        set_bits |= FLOW_METER_SENSOR_BIT;
+       // set_bits |= FLOW_METER_SENSOR_BIT; Not used in this code 
     }
 
     uint8_t current_cst_status = gpio_get_level(BOTT_LEVEL_CST_SENSOR_GPIO);
@@ -1921,9 +1927,9 @@ static void Get_Flow_rate(void)
         previous_cst_status = current_cst_status;
     }
     if (Flow_Rate < FLOW_RATE_MIN_VALUE) {
-       // xEventGroupSetBits(sensor_event_group, FLOW_METER_NO_SENSOR_BIT);
+       // xEventGroupSetBits(sensor_event_group, FLOW_METER_NO_SENSOR_BIT); //Not used in this code 
     } else {
-       // xEventGroupClearBits(sensor_event_group, FLOW_METER_NO_SENSOR_BIT);
+       // xEventGroupClearBits(sensor_event_group, FLOW_METER_NO_SENSOR_BIT); // Not used in this code
     }
     
     if (set_bits) {
