@@ -1,6 +1,6 @@
 // Author : Harshit Singh
-// Version : 0.2
-// Date : 24/02/2026
+// Version : 0.3
+// Date : 26/02/2026
 
 // Header Files
 #include <stddef.h>
@@ -42,8 +42,8 @@
 #define REGENERATION_SUSPEND_RESUME_REQ 							(0u)
 
 // Dosing Time Macros
-#define DOSING_START_TIME			  (11) // 11:00
-#define DOSING_END_TIME				  (17) // 17:00
+#define DOSING_START_TIME			  (13) // 13:00
+#define DOSING_END_TIME				  (14) // 14:00
 
 #define ADC_TOTAL_SAMPLE			  (20)
 
@@ -64,12 +64,12 @@
 #define HIGH 							(1ul)
 #define LOW								(0ul)
 #define MAC_ID_CMD_LENGTH				(6ul)
-#define DATA_CMD_LENGTH					(21ul)
+#define DATA_CMD_LENGTH					(25ul)
 #define LEDC_DUTY_RES                (LEDC_TIMER_10_BIT)
 
 // Salt Dosing MACROS
 #define SALT_DOSING_PUMP_TIME			(15)// 15 SEC
-#define ELECTROLYSIS_PROCESS_TIME       (5)// 5 minute
+#define ELECTROLYSIS_PROCESS_TIME       (60)// 60 minute
 #define RESET_HOLD_TIME_MS 				(2000) // 2 seconds
 #define MAX_CRT_FILLING_TIME			(200)// 200 Second
 #define MAX_CST_FILLING_TIME			(250)// 250 Second
@@ -280,6 +280,8 @@ typedef enum {
 typedef struct {	
   OPERATION operating_mode;
   uint16_t timer_counter;
+  uint16_t chlorinator_batch_count;
+  uint16_t Electrolysis_total_dur;
   uint16_t tank_filling_counter;
   uint16_t tank_draining_counter;  
   uint8_t electrolysis_done_f;	
@@ -566,8 +568,8 @@ void app_main(void)
 	    #endif
 	    
 	    data_transfer(); // getting the UART data and according to that Electro-Chlorinator Operate
-	    Print_Operation_status(); // Debug Purpose 	
-	  //monitor_task_stack(); // monitor stack size in every 1 SEC
+	    Print_Operation_status(); // Debug Purpose 			
+	   //monitor_task_stack(); // monitor stack size in every 1 SEC
 		vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
@@ -759,6 +761,8 @@ static void read_nvs_data(void)
 void v_reset_button_task(void *arg)
 {
     uint32_t notifyValue;
+	uint16_t temp_batch_counter = 0;
+	uint16_t temp_electrolysis_tota_dur = 0;
     while (1)
     {
         xTaskNotifyWait(0, ULONG_MAX, &notifyValue, portMAX_DELAY);
@@ -783,7 +787,11 @@ void v_reset_button_task(void *arg)
                     ESP_LOGI("RESET","BUTTON PRESS");
                     // Erase flash safely
                     //nvs_flash_erase();
+					temp_batch_counter = nvs_data.chlorinator_batch_count; // put in the local variable 
+					temp_electrolysis_tota_dur = nvs_data.Electrolysis_total_dur; // put in the local variable
 					memset(&nvs_data, 0, sizeof(nvs_data));
+					nvs_data.chlorinator_batch_count = temp_batch_counter; // put values back to the main variable
+					nvs_data.Electrolysis_total_dur = temp_electrolysis_tota_dur; // put values back to the main variable
 					save_log_data(&nvs_data);
                     vTaskDelay(pdMS_TO_TICKS(100)); 
                     esp_restart();
@@ -1348,7 +1356,11 @@ static void v15sec_callback(TimerHandle_t xTimer)
 }
 static void v1min_callback(TimerHandle_t xTimer)
 {
-	nvs_data.timer_counter++;		
+	nvs_data.timer_counter++;	
+	if((nvs_data.timer_counter % 60) == 0)
+	{
+		nvs_data.Electrolysis_total_dur++;
+	}	
     if (nvs_data.timer_counter >= ELECTROLYSIS_PROCESS_TIME)
     {
         nvs_data.electrolysis_done_f = true;
@@ -1826,6 +1838,7 @@ void Salt_dosing_operation(void)
 
     nvs_data.dosing_done_f = true;
     ESP_LOGI("Salt Dosing", "Complete");
+	nvs_data.chlorinator_batch_count++; // it tells total number of batches of this system run till now.
     gpio_set_level(SALT_DOSING_PUMP_D1_GPIO, 0); // OFF
     output_status.Output_level.pump2 = LOW;
 }
@@ -2231,10 +2244,17 @@ data_Buffer[15] = (nvs_data.timer_counter & 0xFF);
 
 memcpy(&data_Buffer[16], &system_op_error_code, sizeof(system_op_error_code)); // Error Code 
 
-data_Buffer[20] = time_sync_done_f;  // It tells that time sync is done or Not , 0: No Time Sync 1 : Time Sync 
+
+data_Buffer[20] = (nvs_data.chlorinator_batch_count >> 8);    //Total Number of Batches 
+data_Buffer[21] = (nvs_data.chlorinator_batch_count  & 0xFF);
+
+data_Buffer[22] = (nvs_data.Electrolysis_total_dur  >> 8);    //Total Hours of Electrolysis 
+data_Buffer[23] = (nvs_data.Electrolysis_total_dur  & 0xFF);
+
+data_Buffer[24] = time_sync_done_f;  // It tells that time sync is done or Not , 0: No Time Sync 1 : Time Sync 
 
 Electrode_current =0; Electrode_voltage =0;
-int bytes_sent = uart_write_bytes(uart_num1, (const char*)data_Buffer, DATA_CMD_LENGTH); // 21 Bytes is a Data Packet Length
+int bytes_sent = uart_write_bytes(uart_num1, (const char*)data_Buffer, DATA_CMD_LENGTH); // 25 Bytes is a Data Packet Length
 if (bytes_sent != DATA_CMD_LENGTH) {
     ESP_LOGE("Error", "UART Send Failed (%d bytes sent)", bytes_sent);
     return;
