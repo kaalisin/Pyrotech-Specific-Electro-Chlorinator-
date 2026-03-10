@@ -1,6 +1,6 @@
 // Author : Harshit Singh
-// Version : 0.3
-// Date : 26/02/2026
+// Version : 0.4
+// Date : 10/03/2026
 
 // Header Files
 #include <stddef.h>
@@ -843,6 +843,7 @@ static void v_dosing_task(void * pvParameters)
 						{
 											ESP_LOGI("Chlorine Dosing","Stop");
 											gpio_set_level(DOSING_PUMP_D2_GPIO,0);
+											LED2_OFF();
 											output_status.Output_level.pump3 = LOW;
 											nvs_data.operating_mode &= ~(DOSING_OPERATION);
 											dose_event_grp_status = DOSE_EVENT_GP1;	
@@ -851,6 +852,7 @@ static void v_dosing_task(void * pvParameters)
 						{
 											ESP_LOGI("Chlorine Dosing","Stop");
 											gpio_set_level(DOSING_PUMP_D2_GPIO,0);
+											LED2_OFF();
 											output_status.Output_level.pump3 = LOW;
 											dose_event_grp_status = DOSE_EVENT_GP1;								
 						}
@@ -901,6 +903,7 @@ static void v_regeneration_task(void * pvParameters)
 					 vTaskDelay(xDelay); // 10 SEC delay is provide to the valve because it take time to open and close 
 					 ESP_LOGI("Pump P1:","Started");
 					 gpio_set_level(PUMP_P1_RELAY_GPIO,1);
+					 LED4_ON();
 					 output_status.Output_level.pump1 = HIGH;
 					 ESP_LOGI("RED:","LED OFF");
 					 nvs_data.operating_mode |= (REGENERATION_OPERATION);
@@ -921,7 +924,8 @@ static void v_regeneration_task(void * pvParameters)
 					 ESP_LOGI("Regeneration","Process Stop");
 					 ESP_LOGI("Pump P1:","OFF");
 					 output_status.Output_level.pump1 = LOW;
-					 gpio_set_level(PUMP_P1_RELAY_GPIO,0);			 
+					 gpio_set_level(PUMP_P1_RELAY_GPIO,0);
+					 LED4_OFF();			 
 					 nvs_data.operating_mode &= ~(REGENERATION_OPERATION);
 					 reg_evet_grp_status = REG_EVENT_GRP1;
 				 }
@@ -930,6 +934,7 @@ static void v_regeneration_task(void * pvParameters)
 				     ESP_LOGI("Regeneration","Process Stop No Raw Water Present");
 					 ESP_LOGI("Pump P1:","OFF");
 					 gpio_set_level(PUMP_P1_RELAY_GPIO,0);
+					 LED4_OFF();
 					 output_status.Output_level.pump1 = LOW;	
 					 reg_evet_grp_status = REG_EVENT_GRP1;		 				 
 				 }
@@ -1636,9 +1641,8 @@ void system_check(void)
 			
 		if(regeneration_status_f == SYS_NOK || dosing_status_f == SYS_NOK || chlorine_status_f == SYS_NOK)
 		{
-			System_status_f = SYS_NOK;		
-			LED1_OFF();
-			LED2_OFF();
+			System_status_f = SYS_NOK;
+			if(chlorine_status_f == SYS_NOK){LED1_OFF();}
 			LED3_ON();
 		}
 		else
