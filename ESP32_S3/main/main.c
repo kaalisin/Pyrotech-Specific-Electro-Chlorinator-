@@ -1,6 +1,6 @@
 // Author : Harshit Singh
-// Version : 0.4
-// Date : 10/03/2026
+// Version : 0.5
+// Date : 24/03/2026
 
 // Header Files
 #include <stddef.h>
@@ -919,7 +919,7 @@ static void v_regeneration_task(void * pvParameters)
 	                                       pdFALSE,   // wait for any bit
 	                                       portMAX_DELAY);
 	                                       
-		         if (((bits3 & REG_NO_RELAY_SENSOR_BIT) == REG_NO_RELAY_SENSOR_BIT) && ((nvs_data.operating_mode & REGENERATION_OPERATION) == REGENERATION_OPERATION))
+		         if (((bits3 & REG_NO_RELAY_SENSOR_BIT) == REG_NO_RELAY_SENSOR_BIT))
 		         {				 
 					 ESP_LOGI("Regeneration","Process Stop");
 					 ESP_LOGI("Pump P1:","OFF");
@@ -929,7 +929,7 @@ static void v_regeneration_task(void * pvParameters)
 					 nvs_data.operating_mode &= ~(REGENERATION_OPERATION);
 					 reg_evet_grp_status = REG_EVENT_GRP1;
 				 }
-				 if(((bits3 & FLOATY_NO_SENSOR_BIT) == FLOATY_NO_SENSOR_BIT) && ((nvs_data.operating_mode & REGENERATION_OPERATION) == REGENERATION_OPERATION)) // If FLOATY is not present and Regeneration Signal Present
+				 if(((bits3 & FLOATY_NO_SENSOR_BIT) == FLOATY_NO_SENSOR_BIT)) // If FLOATY is not present and Regeneration Signal Present
 				 {					 			 
 				     ESP_LOGI("Regeneration","Process Stop No Raw Water Present");
 					 ESP_LOGI("Pump P1:","OFF");
@@ -1533,7 +1533,12 @@ void system_check(void)
 		   {
 			   regeneration_status_f = SYS_NOK;
 			   system_op_error_code |= REGENERATION_ERROR;
-		   } 	
+		   } 
+		   
+		   if(gpio_get_level(REGENERATION_SIGNAL_GPIO) == true)
+		   {
+			  nvs_data.operating_mode &= ~(REGENERATION_OPERATION);
+		   }
 	}
 	
 	if((chlorine_status_f == SYS_OK && prev_chlorine_status_f != chlorine_status_f && gpio_get_level(OPERATING_MODE_SWITCH) == OPERATING_MODE)
